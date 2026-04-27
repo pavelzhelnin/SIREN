@@ -251,6 +251,47 @@ double ProcessWeighter<ProcessType>::EventWeight(std::tuple<siren::math::Vector3
 }
 
 template<typename ProcessType>
+void ProcessWeighter<ProcessType>::DebugBreakdown(std::tuple<siren::math::Vector3D, siren::math::Vector3D> const & bounds,
+        siren::dataclasses::InteractionTreeDatum const & datum, std::ostream & os) const {
+    auto const & record = datum.record;
+    double interaction_prob = InteractionProbability(bounds, record);
+    double pos_prob = NormalizedPositionProbability(bounds, record);
+    double xs_prob_phys = siren::injection::CrossSectionProbability(detector_model, phys_process->GetInteractions(), record);
+    double xs_prob_gen = siren::injection::CrossSectionProbability(detector_model, inj_process->GetInteractions(), record);
+
+    os.precision(17);
+    os << record.primary_momentum[0]
+       << " " << record.primary_momentum[1]
+       << " " << record.primary_momentum[2]
+       << " " << record.primary_momentum[3]
+       << " " << record.interaction_vertex[0]
+       << " " << record.interaction_vertex[1]
+       << " " << record.interaction_vertex[2]
+       << " " << static_cast<int32_t>(record.signature.primary_type)
+       << " " << static_cast<int32_t>(record.signature.target_type)
+       << " " << normalization
+       << " " << interaction_prob
+       << " " << pos_prob
+       << " " << xs_prob_phys
+       << " " << xs_prob_gen;
+
+    os << " " << unique_phys_distributions.size();
+    for(auto const & d : unique_phys_distributions) {
+        os << " " << d->GenerationProbability(detector_model, phys_process->GetInteractions(), record);
+    }
+    os << " " << unique_gen_distributions.size();
+    for(auto const & d : unique_gen_distributions) {
+        os << " " << d->GenerationProbability(detector_model, inj_process->GetInteractions(), record);
+    }
+
+    os << " " << record.secondary_momenta.size();
+    for(auto const & sm : record.secondary_momenta) {
+        os << " " << sm[0] << " " << sm[1] << " " << sm[2] << " " << sm[3];
+    }
+    os << "\n";
+}
+
+template<typename ProcessType>
 ProcessWeighter<ProcessType>::ProcessWeighter(std::shared_ptr<siren::injection::PhysicalProcess> phys_process, std::shared_ptr<ProcessType> inj_process, std::shared_ptr<siren::detector::DetectorModel> detector_model)
     : phys_process(phys_process)
       , inj_process(inj_process)

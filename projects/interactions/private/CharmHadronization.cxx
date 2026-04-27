@@ -116,7 +116,11 @@ double CharmHadronization::getHadronMass(siren::dataclasses::ParticleType hadron
 			case siren::dataclasses::ParticleType::DPlus:
 				return( siren::utilities::Constants::DPlusMass);
 			case siren::dataclasses::ParticleType::DMinus:
-				return( siren::utilities::Constants::DPlusMass);	
+				return( siren::utilities::Constants::DPlusMass);
+			case siren::dataclasses::ParticleType::DsPlus:
+				return 1.96834; // GeV (PDG 2022)
+			case siren::dataclasses::ParticleType::DsMinus:
+				return 1.96834;
 			case siren::dataclasses::ParticleType::Charm:
 				return( siren::utilities::Constants::CharmMass);
 			case siren::dataclasses::ParticleType::CharmBar:
@@ -150,11 +154,15 @@ std::vector<dataclasses::InteractionSignature> CharmHadronization::GetPossibleSi
         signatures.push_back(signature);
         signature.secondary_types[1] = siren::dataclasses::Particle::ParticleType::DPlus;
         signatures.push_back(signature);
+        signature.secondary_types[1] = siren::dataclasses::Particle::ParticleType::DsPlus;
+        signatures.push_back(signature);
       }
     else if(primary==siren::dataclasses::Particle::ParticleType::CharmBar) {
         signature.secondary_types[1] = siren::dataclasses::Particle::ParticleType::D0Bar;
         signatures.push_back(signature);
         signature.secondary_types[1] = siren::dataclasses::Particle::ParticleType::DMinus;
+        signatures.push_back(signature);
+        signature.secondary_types[1] = siren::dataclasses::Particle::ParticleType::DsMinus;
         signatures.push_back(signature);
     }
     return signatures;
@@ -227,7 +235,9 @@ double CharmHadronization::FragmentationFraction(siren::dataclasses::Particle::P
         return 0.6;
     } else if (secondary == siren::dataclasses::Particle::ParticleType::DPlus || secondary == siren::dataclasses::Particle::ParticleType::DMinus) {
         return 0.23;
-    } // D_s and Lambda^+ not yet implemented
+    } else if (secondary == siren::dataclasses::Particle::ParticleType::DsPlus || secondary == siren::dataclasses::Particle::ParticleType::DsMinus) {
+        return 0.08;
+    } // Lambda^+ not yet implemented
     return 0;
 }
 

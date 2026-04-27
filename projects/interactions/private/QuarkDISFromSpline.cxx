@@ -233,7 +233,11 @@ double QuarkDISFromSpline::getHadronMass(siren::dataclasses::ParticleType hadron
 			case siren::dataclasses::ParticleType::DPlus:
 				return( siren::utilities::Constants::DPlusMass);
 			case siren::dataclasses::ParticleType::DMinus:
-				return( siren::utilities::Constants::DPlusMass);	
+				return( siren::utilities::Constants::DPlusMass);
+			case siren::dataclasses::ParticleType::DsPlus:
+				return 1.96834; // GeV (PDG 2022)
+			case siren::dataclasses::ParticleType::DsMinus:
+				return 1.96834;
 			case siren::dataclasses::ParticleType::Charm:
 				return( siren::utilities::Constants::CharmMass);
 			case siren::dataclasses::ParticleType::CharmBar:
@@ -351,11 +355,13 @@ void QuarkDISFromSpline::InitializeSignatures() {
         signature.secondary_types.push_back(siren::dataclasses::ParticleType::Hadrons);
         // define the charmed meson types based on the quark type, now considering only D0 and D+
         if (quark_type_ == 1) {
-            D_types_ = {siren::dataclasses::Particle::ParticleType::D0, 
-                        siren::dataclasses::Particle::ParticleType::DPlus};
+            D_types_ = {siren::dataclasses::Particle::ParticleType::D0,
+                        siren::dataclasses::Particle::ParticleType::DPlus,
+                        siren::dataclasses::Particle::ParticleType::DsPlus};
         } else {
-            D_types_ = {siren::dataclasses::Particle::ParticleType::D0Bar, 
-                        siren::dataclasses::Particle::ParticleType::DMinus};
+            D_types_ = {siren::dataclasses::Particle::ParticleType::D0Bar,
+                        siren::dataclasses::Particle::ParticleType::DMinus,
+                        siren::dataclasses::Particle::ParticleType::DsMinus};
         }
         // push back the meson type
         for (auto meson_type : D_types_) {
@@ -841,7 +847,7 @@ void QuarkDISFromSpline::SampleFinalState(dataclasses::CrossSectionDistributionR
         if (sampling > max_sampling) {
             std::cout << "energy of the charm is " << Ec << " and momentum is " << p3c << std::endl;
             std::cout << "desired mass of hadron is " << mCH << std::endl;
-            // throw(siren::utilities::InjectionFailure("Failed to sample hadronization!"));
+            throw(siren::utilities::InjectionFailure("Failed to sample hadronization!"));
             break;
         }
         randValue = random->Uniform(0,1);
@@ -856,13 +862,12 @@ void QuarkDISFromSpline::SampleFinalState(dataclasses::CrossSectionDistributionR
     // new attempt of using the isoscalar mass as the remnant hadronic shower mass
     double mX = target_mass_;
     double Mc = p4.m();
-    // std::cout << "using remnant mass " << mX << std::endl;
-    // std::cout << "invariant charm mass and its energy is " << Mc << ", " << p4.e() << std::endl;
-    // std::cout << "target sampled D meson energy is " << ECH << std::endl;
-    // std::cout << "and the fraction of momentum is sampled to be " << z << std::endl;
+    // Kinematic check: virtual charm must be heavy enough to produce D meson + remnant
+    if (Mc < mCH + mX) {
+        throw(siren::utilities::InjectionFailure("Virtual charm mass below D meson + remnant threshold"));
+    }
     //compute the energies in the charm rest frame
     double E_CH_c = (std::pow(Mc, 2) - std::pow(mX, 2) + std::pow(mCH, 2)) / (2 * Mc);
-    // std::cout << "energy of charm in rest frame is " << E_CH_c << std::endl;
     double p_c = std::sqrt((std::pow(Mc, 2) - std::pow(mCH + mX, 2)) * (std::pow(Mc, 2) - std::pow(mCH - mX, 2))) / (2 * Mc);
     // std::cout << "momentum in charm rest frame is " << p_c << std::endl;
     // compute the lorentz boost parameters
@@ -928,7 +933,9 @@ double QuarkDISFromSpline::FragmentationFraction(siren::dataclasses::Particle::P
         return 0.6;
     } else if (secondary == siren::dataclasses::Particle::ParticleType::DPlus || secondary == siren::dataclasses::Particle::ParticleType::DMinus) {
         return 0.23;
-    } // D_s and Lambda^+ not yet implemented
+    } else if (secondary == siren::dataclasses::Particle::ParticleType::DsPlus || secondary == siren::dataclasses::Particle::ParticleType::DsMinus) {
+        return 0.08;
+    } // Lambda^+ not yet implemented
     return 0;
 }
 

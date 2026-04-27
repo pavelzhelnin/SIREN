@@ -54,6 +54,7 @@ public:
     double PhysicalProbability(std::tuple<siren::math::Vector3D, siren::math::Vector3D> const & bounds, siren::dataclasses::InteractionRecord const & record) const;
     double GenerationProbability(siren::dataclasses::InteractionTreeDatum const & datum) const;
     double EventWeight(std::tuple<siren::math::Vector3D, siren::math::Vector3D> const & bounds, siren::dataclasses::InteractionTreeDatum const & datum) const;
+    void DebugBreakdown(std::tuple<siren::math::Vector3D, siren::math::Vector3D> const & bounds, siren::dataclasses::InteractionTreeDatum const & datum, std::ostream & os) const;
     ProcessWeighter(std::shared_ptr<siren::injection::PhysicalProcess> phys_process, std::shared_ptr<ProcessType> inj_process, std::shared_ptr<siren::detector::DetectorModel> detector_model);
 
 }; // ProcessWeighter

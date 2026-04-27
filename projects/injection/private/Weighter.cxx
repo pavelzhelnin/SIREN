@@ -86,7 +86,23 @@ void Weighter::Initialize() {
     }
 }
 
+namespace {
+    std::ofstream & DebugWeightStream() {
+        static std::ofstream os;
+        static bool initialized = false;
+        if(!initialized) {
+            char const * path = std::getenv("SIREN_DEBUG_WEIGHTS_OUT");
+            std::string p = path ? std::string(path) : std::string("/tmp/siren_weight_debug.txt");
+            os.open(p, std::ios::out | std::ios::trunc);
+            os << "# E_nu px py pz vx vy vz primary_type target_type normalization interaction_prob pos_prob xs_prob_phys xs_prob_gen n_phys_dists [phys_dist_probs] n_gen_dists [gen_dist_probs] n_secondaries [sec_E sec_px sec_py sec_pz]... gen_prob_total phys_prob_total events_to_inject final_event_weight injector_idx\n";
+            initialized = true;
+        }
+        return os;
+    }
+}
+
 double Weighter::EventWeight(siren::dataclasses::InteractionTree const & tree) const {
+    bool debug_dump = (std::getenv("SIREN_DEBUG_WEIGHTS") != nullptr);
     // The weight is given by
     //
     // [sum_{injectors i}
@@ -122,6 +138,10 @@ double Weighter::EventWeight(siren::dataclasses::InteractionTree const & tree) c
             std::tuple<siren::math::Vector3D, siren::math::Vector3D> bounds;
             if(datum->depth() == 0) {
                 bounds = injectors[idx]->PrimaryInjectionBounds(datum->record);
+                if(debug_dump) {
+                    std::ofstream & dos = DebugWeightStream();
+                    primary_process_weighters[idx]->DebugBreakdown(bounds, *datum, dos);
+                }
                 physical_probability *= primary_process_weighters[idx]->PhysicalProbability(bounds, datum->record);
                 generation_probability *= primary_process_weighters[idx]->GenerationProbability(*datum);
                 // for debugging purposes: nan weights are frequnetly detected
@@ -160,6 +180,13 @@ double Weighter::EventWeight(siren::dataclasses::InteractionTree const & tree) c
             }
         }
         inv_weight += generation_probability / physical_probability;
+
+        if(debug_dump) {
+            std::ofstream & dos = DebugWeightStream();
+            dos.precision(17);
+            dos << "WEIGHTER_TOTALS " << generation_probability << " " << physical_probability << " " << injectors[idx]->EventsToInject() << " " << (1.0 / inv_weight) << " " << idx << "\n";
+            dos.flush();
+        }
 
         // if (physical_probability == 0) {
         //     std::cout << "Event has 0 physical probability, leading to: " << inv_weight << " " << 1./inv_weight << std::endl;
